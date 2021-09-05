@@ -1,4 +1,4 @@
-/* 
+/*
  * The MIT License (MIT)
  *
  * Copyright (c) 2019 Ha Thach (tinyusb.org)
@@ -23,20 +23,22 @@
  *
  */
 
-#include <stdlib.h>
-#include <stdio.h>
+//#include <stdlib.h>
+//#include <stdio.h>
 // #include <string.h>
 #include <math.h>
 
-#include "bsp/board.h"
+//#include "bsp/board.h"
 #include "tusb.h"
-#include "pico/stdlib.h"
+//#include "pico/stdlib.h"
 
 #include "hardware/pwm.h"
+#include "hardware/adc.h"
 // #include "hardware/clocks.h"
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "EndlessLoop"
+
 #define NOTE packet[2]
 
 void midi_task(void);
@@ -45,7 +47,6 @@ void init_task(void);
 
 // uint32_t clock_freq;
 // uint slice_num = 2;
-float duty_cycle = 0.25f;
 int active_notes = 0;
 
 int notes[] = {-1, -1, -1, -1, -1, -1, -1, -1}; // one for each slice
@@ -59,10 +60,7 @@ int main(void) {
         tud_task(); // tinyusb device task
         midi_task();
     }
-
-    return 0;
 }
-// JINDO BACHAAAAA !!!!
 
 //--------------------------------------------------------------------+
 // Device callbacks
@@ -104,6 +102,10 @@ void init_task(void) {
     */
     gpio_init(25);
     gpio_set_dir(25, GPIO_OUT);
+
+    adc_init();
+    adc_gpio_init(26);
+    adc_select_input(0);
 
     // initialize all PWMs
     for (int slice_num = 0; slice_num < 8; slice_num++) {
@@ -165,6 +167,9 @@ void midi_task(void) {
                 active_notes++;
                 if (active_notes >= 2)
                     gpio_put(25, 1);
+                uint16_t potentiometer_val = adc_read();
+                float duty_cycle = potentiometer_val < 2048 ? (float)potentiometer_val / 4096.f : 0.5f;
+//                float duty_cycle = 0.5f;
                 pwm_set_wrap(slice_num, (uint16_t) ((500000.f / (float) new_frequency) + 0.5));
                 pwm_set_chan_level(slice_num, PWM_CHAN_A,
                                    (uint16_t) ((duty_cycle * 500000) / (float) new_frequency + 0.5));
@@ -201,4 +206,4 @@ void midi_task(void) {
     */
 }
 
-#pragma clang diagnostic pop
+//#pragma clang diagnostic pop
